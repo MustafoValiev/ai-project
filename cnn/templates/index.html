@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Toxic Comment Detector</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: Segoe UI, Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 800px;
+            width: 100%;
+            padding: 40px;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .input-section { margin-bottom: 30px; }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .char-count {
+            text-align: right;
+            color: #999;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .result-section {
+            margin-top: 30px;
+            padding: 25px;
+            border-radius: 15px;
+            background: #f8f9fa;
+            display: none;
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .result-label {
+            font-size: 2em;
+            font-weight: bold;
+            padding: 10px 25px;
+            border-radius: 10px;
+        }
+
+        .safe { background: #d4edda; color: #155724; }
+        .toxic { background: #f8d7da; color: #721c24; }
+
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #e9ecef;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #28a745 0%, #ffc107 50%, #dc3545 100%);
+            border-radius: 15px;
+            transition: width 0.5s ease;
+            text-align: right;
+            padding-right: 10px;
+            color: white;
+            font-weight: bold;
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .metric-card {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .metric-label { color: #666; font-size: 0.9em; }
+        .metric-value { color: #667eea; font-size: 1.5em; font-weight: bold; }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        @media (max-width: 600px) {
+            .container { padding: 20px; }
+            h1 { font-size: 1.8em; }
+            .metrics { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Toxic Comment Detector</h1>
+    <p class="subtitle">CNN-based text classification <span class="badge">Deep Learning</span></p>
+
+    <div class="input-section">
+        <label for="commentText">Text</label>
+        <textarea id="commentText" maxlength="5000"></textarea>
+        <div class="char-count"><span id="charCount">0</span> / 5000</div>
+    </div>
+
+    <button id="analyzeBtn" onclick="analyzeComment()">Analyze</button>
+
+    <div class="error" id="errorMsg"></div>
+
+    <div class="result-section" id="resultSection">
+        <div class="result-header">
+            <h2>Result</h2>
+            <div class="result-label" id="resultLabel"></div>
+        </div>
+
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+
+        <div class="metrics">
+            <div class="metric-card">
+                <div class="metric-label">Confidence</div>
+                <div class="metric-value" id="confidenceValue">0%</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Words</div>
+                <div class="metric-value" id="wordCount">0</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Length</div>
+                <div class="metric-value" id="textLength">0</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const textarea = document.getElementById('commentText');
+const charCount = document.getElementById('charCount');
+const analyzeBtn = document.getElementById('analyzeBtn');
+const resultSection = document.getElementById('resultSection');
+const errorMsg = document.getElementById('errorMsg');
+
+textarea.addEventListener('input', () => {
+    charCount.textContent = textarea.value.length;
+});
+
+textarea.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        analyzeComment();
+    }
+});
+
+async function analyzeComment() {
+    const text = textarea.value.trim();
+    if (!text) {
+        showError('Empty input');
+        return;
+    }
+
+    analyzeBtn.disabled = true;
+    analyzeBtn.innerHTML = '<span class="spinner"></span>Processing';
+    errorMsg.style.display = 'none';
+    resultSection.style.display = 'none';
+
+    try {
+        const response = await fetch('/predict', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text })
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error);
+        displayResult(data);
+    } catch (e) {
+        showError(e.message);
+    } finally {
+        analyzeBtn.disabled = false;
+        analyzeBtn.textContent = 'Analyze';
+    }
+}
+
+function displayResult(data) {
+    resultSection.style.display = 'block';
+
+    const label = document.getElementById('resultLabel');
+    label.textContent = data.label;
+    label.className = 'result-label ' + (data.is_toxic ? 'toxic' : 'safe');
+
+    const score = Math.round(data.toxicity_score * 100);
+    const fill = document.getElementById('progressFill');
+    fill.style.width = score + '%';
+    fill.textContent = score + '%';
+
+    document.getElementById('confidenceValue').textContent =
+        Math.round(data.confidence * 100) + '%';
+    document.getElementById('wordCount').textContent = data.word_count;
+    document.getElementById('textLength').textContent = data.text_length;
+}
+
+function showError(msg) {
+    errorMsg.textContent = msg;
+    errorMsg.style.display = 'block';
+}
+
+window.addEventListener('load', async () => {
+    try {
+        const res = await fetch('/health');
+        const data = await res.json();
+        if (!data.model_loaded) {
+            showError('Model not loaded');
+        }
+    } catch {
+        showError('Server unavailable');
+    }
+});
+</script>
+</body>
+</html>
