@@ -27,8 +27,8 @@ def main():
     TRAIN_VAL_SPLIT = 0.85
     VAL_SIZE = 0.15
     BATCH_SIZE = 16
-    EPOCHS = 5
-    LEARNING_RATE = 2e-5
+    EPOCHS = 15
+    LEARNING_RATE = 0.001
     HIDDEN_SIZES = [512, 256]
     USE_FULL_DATASET = True
     MAX_LENGTH = 128

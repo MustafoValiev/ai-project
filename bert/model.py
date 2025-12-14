@@ -1,17 +1,25 @@
-#model.py
 import torch
 import torch.nn as nn
 from transformers import DistilBertModel
 
 
 class ToxicCommentNN(nn.Module):
-    def __init__(self, bert_model, hidden_sizes=[512, 256], dropout=0.3):
+    def __init__(self, bert_model, hidden_sizes=[128, 64], dropout=0.5):
         super(ToxicCommentNN, self).__init__()
         
         self.bert = bert_model
-        for param in self.bert.parameters():
+        
+        # Freeze embedding layer
+        for param in self.bert.embeddings.parameters():
             param.requires_grad = False
         
+        # Freeze first 4 transformer layers, unfreeze last 2
+        for param in self.bert.transformer.layer[:4].parameters():
+            param.requires_grad = False
+        for param in self.bert.transformer.layer[4:].parameters():
+            param.requires_grad = True
+        
+        # Smaller, more efficient classifier
         layers = []
         prev_size = 768
         
@@ -34,7 +42,7 @@ class ToxicCommentNN(nn.Module):
 
 
 class ToxicClassifier:
-    def __init__(self, device, hidden_sizes=[512, 256]):
+    def __init__(self, device, hidden_sizes=[128, 64]):
         self.device = device
         from transformers import DistilBertTokenizer
         self.tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
@@ -42,7 +50,7 @@ class ToxicClassifier:
         self.model = ToxicCommentNN(bert_model, hidden_sizes).to(device)
         self.training_history = {'train_loss': [], 'val_acc': [], 'val_f1': []}
         
-    def train_model(self, train_loader, val_loader, epochs=5, lr=2e-5):
+    def train_model(self, train_loader, val_loader, epochs=15, lr=0.001, bert_lr=2e-5):
         import torch.nn as nn
         import torch.optim as optim
         import numpy as np
@@ -50,14 +58,23 @@ class ToxicClassifier:
         from sklearn.metrics import accuracy_score, precision_recall_fscore_support
         
         criterion = nn.CrossEntropyLoss()
-        optimizer = optim.AdamW(self.model.parameters(), lr=lr, weight_decay=0.01)
         
-        print(f"\nTraining for {epochs} epochs on {self.device}")
-        print(f"Learning rate: {lr}")
+        # Differential learning rates: lower for BERT, higher for classifier
+        optimizer = optim.AdamW([
+            {'params': self.model.bert.parameters(), 'lr': bert_lr, 'weight_decay': 0.01},
+            {'params': self.model.classifier.parameters(), 'lr': lr, 'weight_decay': 1e-5}
+        ])
+        
+        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', 
+                                                         factor=0.5, patience=2, verbose=True)
+        
+        print(f"\nTraining optimized BERT for {epochs} epochs on {self.device}")
+        print(f"Classifier LR: {lr}, BERT LR: {bert_lr}")
+        print(f"Trainable parameters: {sum(p.numel() for p in self.model.parameters() if p.requires_grad):,}")
         
         best_val_f1 = 0
         patience_counter = 0
-        patience = 3
+        patience = 5
         
         for epoch in range(epochs):
             self.model.train()
@@ -114,6 +131,8 @@ class ToxicClassifier:
             self.training_history['train_loss'].append(avg_train_loss)
             self.training_history['val_acc'].append(val_acc)
             self.training_history['val_f1'].append(val_f1)
+            
+            scheduler.step(val_f1)
             
             print(f"Epoch {epoch+1}/{epochs} - Loss: {avg_train_loss:.4f}, Train Acc: {train_acc:.2f}%, Val Acc: {val_acc:.2f}%, Val F1: {val_f1:.4f}")
             

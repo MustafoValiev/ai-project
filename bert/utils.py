@@ -17,7 +17,7 @@ def count_parameters(model):
     return trainable_params
 
 
-def generate_visualizations(y_test, y_pred, y_probs, training_history, save_path='results/'):
+def generate_visualizations(y_test, y_pred, y_probs, training_history, save_path='results/', model=None):
     os.makedirs(save_path, exist_ok=True)
     
     fig = plt.figure(figsize=(18, 10))
@@ -34,7 +34,12 @@ def generate_visualizations(y_test, y_pred, y_probs, training_history, save_path
     ax2 = plt.subplot(2, 3, 2)
     if training_history.get('train_loss'):
         ax2.plot(training_history['train_loss'], marker='o', label='Training Loss')
-        ax2.set_title('Training Loss', fontsize=14, fontweight='bold')
+        title_text = 'Training Loss'
+        if model is not None:
+            total_params = sum(p.numel() for p in model.parameters())
+            trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+            title_text += f'\nParams: {total_params:,} (Trainable: {trainable_params:,})'
+        ax2.set_title(title_text, fontsize=12, fontweight='bold')
         ax2.set_xlabel('Epoch')
         ax2.set_ylabel('Loss')
         ax2.legend()
@@ -85,8 +90,23 @@ def generate_visualizations(y_test, y_pred, y_probs, training_history, save_path
     ax6 = plt.subplot(2, 3, 6)
     ax6.axis('off')
     
+    param_info = ""
+    if model is not None:
+        total_params = sum(p.numel() for p in model.parameters())
+        trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        model_size = total_params * 4 / 1e6
+        
+        param_info = f"""
+    MODEL PARAMETERS
+    {'='*40}
+    Total Parameters:     {total_params:,}
+    Trainable Parameters: {trainable_params:,}
+    Model Size:           {model_size:.2f} MB
+    
+    """
+    
     summary_text = f"""
-    PERFORMANCE SUMMARY
+    {param_info}PERFORMANCE SUMMARY
     {'='*40}
     
     Total Test Samples: {len(y_test):,}

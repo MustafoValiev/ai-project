@@ -20,7 +20,7 @@ def main():
     TRAIN_VAL_SPLIT = 0.85
     VAL_SIZE = 0.15
     BATCH_SIZE = 64
-    EPOCHS = 10
+    EPOCHS = 15
     LEARNING_RATE = 0.001
     USE_FULL_DATASET = True
     MAX_LENGTH = 200

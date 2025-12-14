@@ -1,4 +1,3 @@
-# model.py
 import torch
 import torch.nn as nn
 import numpy as np
@@ -140,7 +139,7 @@ class ToxicClassifier:
         
         return sequence
         
-    def train_model(self, train_loader, val_loader, epochs=10, lr=0.001):
+    def train_model(self, train_loader, val_loader, epochs=15, lr=0.001):
         import torch.optim as optim
         import numpy as np
         from tqdm import tqdm

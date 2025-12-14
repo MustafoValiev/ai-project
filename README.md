@@ -55,3 +55,8 @@ The script will:
 - **Classifier**: 2-layer neural network (512 → 256 → 2)
 - **Features**: BERT embeddings (768 dimensions)
 - **Context Understanding**: Full sentence context with attention mechanism
+
+Run the demo:
+```bash
+python app.py
+```
