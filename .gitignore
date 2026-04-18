@@ -27,9 +27,6 @@ cnn/models/
 *.pt
 *.zip
 
-# RESULTS
-results/
-*.json
 
 # ARCHIVE
 archive/
